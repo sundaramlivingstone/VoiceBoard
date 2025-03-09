@@ -30,6 +30,7 @@ const Whiteboard = () => {
   const [zoom, setZoom] = useState(1);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [shapesMenu, setShapesMenu] = useState(false);
+  const [backgroundType, setBackgroundType] = useState("white");
   const fileInputRef = useRef(null);
 
   // Set the active mode (e.g., "select", "draw")
@@ -171,7 +172,11 @@ const Whiteboard = () => {
     if (fabricCanvas) {
       fabricCanvas.clear();
       fabricCanvas.setBackgroundColor(
-        "#ffffff",
+        backgroundType === "white"
+          ? "#ffffff"
+          : backgroundType === "black"
+          ? "#000000"
+          : "#f0f0f0",
         fabricCanvas.renderAll.bind(fabricCanvas)
       );
       updateCanvasHistory(fabricCanvas);
@@ -224,6 +229,9 @@ const Whiteboard = () => {
           top: fabricCanvas.height / 2,
         });
         break;
+      default:
+        console.log("Unknown shape type:", type);
+        return;
     }
 
     if (shape) {
@@ -280,6 +288,18 @@ const Whiteboard = () => {
 
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
+  };
+
+  // Change background type
+  const changeBackground = (type) => {
+    setBackgroundType(type);
+    if (fabricCanvas) {
+      fabricCanvas.setBackgroundColor(
+        type === "white" ? "#ffffff" : type === "black" ? "#000000" : "#f0f0f0",
+        fabricCanvas.renderAll.bind(fabricCanvas)
+      );
+      updateCanvasHistory(fabricCanvas);
+    }
   };
 
   return (
@@ -416,6 +436,41 @@ const Whiteboard = () => {
                 </div>
               </div>
             )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => changeBackground("white")}
+              className={`p-2 rounded-md ${
+                backgroundType === "white"
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100"
+              }`}
+              title="White Background"
+            >
+              White
+            </button>
+            <button
+              onClick={() => changeBackground("black")}
+              className={`p-2 rounded-md ${
+                backgroundType === "black"
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100"
+              }`}
+              title="Black Background"
+            >
+              Black
+            </button>
+            <button
+              onClick={() => changeBackground("grid")}
+              className={`p-2 rounded-md ${
+                backgroundType === "grid"
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100"
+              }`}
+              title="Grid Background"
+            >
+              Grid
+            </button>
           </div>
         </div>
         <div className="flex items-center space-x-2">
