@@ -9,11 +9,16 @@ import {
   faPlus,
   faSliders,
   faFileLines,
+  faPencilAlt,
+  faCheck,
+  faTimes,
 } from "@fortawesome/free-solid-svg-icons";
 
 const Dashboard = () => {
   const [projects, setProjects] = useState([]);
   const [activeTab, setActiveTab] = useState("recently");
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState("");
 
   // Load projects from localStorage on mount
   useEffect(() => {
@@ -21,7 +26,7 @@ const Dashboard = () => {
     setProjects(storedProjects);
   }, []);
 
-  // Create a new project
+  // Create a new project and immediately set it to editing mode
   const createNewProject = (type = "whiteboard") => {
     const newProject = {
       id: Date.now().toString(),
@@ -33,6 +38,11 @@ const Dashboard = () => {
     const updatedProjects = [newProject, ...projects];
     setProjects(updatedProjects);
     localStorage.setItem("projects", JSON.stringify(updatedProjects));
+
+    // Set to editing mode immediately after creation
+    setEditingId(newProject.id);
+    setEditingName(newProject.name);
+
     return newProject;
   };
 
@@ -43,6 +53,46 @@ const Dashboard = () => {
     const updatedProjects = projects.filter((p) => p.id !== projectId);
     setProjects(updatedProjects);
     localStorage.setItem("projects", JSON.stringify(updatedProjects));
+  };
+
+  // Start editing a project name
+  const startEditing = (projectId, projectName, e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setEditingId(projectId);
+    setEditingName(projectName);
+  };
+
+  // Save the edited project name
+  const saveProjectName = (projectId, e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (editingName.trim() === "") return;
+
+    const updatedProjects = projects.map((project) => {
+      if (project.id === projectId) {
+        return {
+          ...project,
+          name: editingName,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return project;
+    });
+
+    setProjects(updatedProjects);
+    localStorage.setItem("projects", JSON.stringify(updatedProjects));
+    setEditingId(null);
+    setEditingName("");
+  };
+
+  // Cancel editing
+  const cancelEditing = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setEditingId(null);
+    setEditingName("");
   };
 
   // Format date to show days ago
@@ -311,47 +361,100 @@ const Dashboard = () => {
             {projects.length > 0 ? (
               <div className="grid grid-cols-4 gap-4">
                 {projects.map((project) => (
-                  <Link
+                  <div
                     key={project.id}
-                    to={`/whiteboard/${project.id}`}
                     className="relative group bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition"
                   >
                     {/* Project Thumbnail */}
-                    <div className="h-40 bg-gray-100 flex items-center justify-center">
-                      {project.type === "whiteboard" && (
-                        <FontAwesomeIcon
-                          icon={faPenRuler}
-                          className="text-gray-400 text-4xl"
-                        />
-                      )}
-                      {project.type === "design" && (
-                        <FontAwesomeIcon
-                          icon={faPenRuler}
-                          className="text-blue-400 text-4xl"
-                        />
-                      )}
-                      {project.type === "figJam" && (
-                        <FontAwesomeIcon
-                          icon={faSliders}
-                          className="text-purple-400 text-4xl"
-                        />
-                      )}
-                      {project.type === "slide" && (
-                        <FontAwesomeIcon
-                          icon={faFile}
-                          className="text-orange-400 text-4xl"
-                        />
-                      )}
-                    </div>
+                    <Link to={`/whiteboard/${project.id}`}>
+                      <div className="h-40 bg-gray-100 flex items-center justify-center">
+                        {project.type === "whiteboard" && (
+                          <FontAwesomeIcon
+                            icon={faPenRuler}
+                            className="text-gray-400 text-4xl"
+                          />
+                        )}
+                        {project.type === "design" && (
+                          <FontAwesomeIcon
+                            icon={faPenRuler}
+                            className="text-blue-400 text-4xl"
+                          />
+                        )}
+                        {project.type === "figJam" && (
+                          <FontAwesomeIcon
+                            icon={faSliders}
+                            className="text-purple-400 text-4xl"
+                          />
+                        )}
+                        {project.type === "slide" && (
+                          <FontAwesomeIcon
+                            icon={faFile}
+                            className="text-orange-400 text-4xl"
+                          />
+                        )}
+                      </div>
+                    </Link>
 
                     {/* Project Info */}
                     <div className="p-3">
-                      <div className="text-sm font-medium truncate">
-                        {project.name}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Edited {formatDate(project.updatedAt)}
-                      </div>
+                      {editingId === project.id ? (
+                        <div className="flex items-center">
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") {
+                                saveProjectName(project.id, e);
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={(e) => saveProjectName(project.id, e)}
+                            className="ml-1 p-1 text-green-600 hover:text-green-800"
+                          >
+                            <FontAwesomeIcon
+                              icon={faCheck}
+                              className="text-sm"
+                            />
+                          </button>
+                          <button
+                            onClick={cancelEditing}
+                            className="p-1 text-red-600 hover:text-red-800"
+                          >
+                            <FontAwesomeIcon
+                              icon={faTimes}
+                              className="text-sm"
+                            />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm font-medium truncate">
+                              {project.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Edited {formatDate(project.updatedAt)}
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) =>
+                              startEditing(project.id, project.name, e)
+                            }
+                            className="p-1 text-gray-500 hover:text-gray-700"
+                            title="Rename"
+                          >
+                            <FontAwesomeIcon
+                              icon={faPencilAlt}
+                              className="text-sm"
+                            />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Delete button - visible on hover */}
@@ -361,7 +464,7 @@ const Dashboard = () => {
                     >
                       <FontAwesomeIcon icon={faTrashCan} className="text-sm" />
                     </button>
-                  </Link>
+                  </div>
                 ))}
               </div>
             ) : (
